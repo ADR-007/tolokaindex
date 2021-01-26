@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import HttpResponseRedirect
 from django.urls import path
 
 from tolokaindex.apps.posts.admin import public_admin
@@ -22,4 +23,5 @@ from tolokaindex.apps.posts.admin import public_admin
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("dashboard/", public_admin.urls),
+    path("", lambda request: HttpResponseRedirect('/dashboard/posts/mediaitem/')),
 ]
