@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Iterator, Tuple
+from typing import List, Tuple
 
 from django.db import models
 from django.utils.functional import cached_property
@@ -16,19 +16,20 @@ TITLE_RE = re.compile(
     r'\((?P<years>((\d{4})( ?- ?(\d{2,4}))?(, )?)+)\)'
 )
 TITLE_EXTRA_INFO = re.compile(r'\(.*?\)')
+TITLE_MAX_LENGTH = 500
 
 
 class Title(models.Model):
-    title = models.CharField(max_length=500, unique=True)
+    title = models.CharField(max_length=TITLE_MAX_LENGTH, unique=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.title)
 
 
 class Year(models.Model):
     year = models.PositiveIntegerField(unique=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.year)
 
 
@@ -41,7 +42,7 @@ class MediaItem(models.Model):
     def years(self) -> Tuple[str, ...]:
         return tuple(self.posts.values_list('years__year', flat=True).distinct())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Titles: {self.titles}, years: {self.years}'
 
 
