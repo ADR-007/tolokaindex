@@ -1,10 +1,10 @@
-from urllib.parse import urlencode, quote
+from urllib.parse import quote
 
 from django.core.management.base import BaseCommand
-from django.db.models import Min, Max
+from django.db.models import Max, Min
 from django.utils.timezone import now
 
-from tolokaindex.apps.posts.models import Post, MediaItem
+from tolokaindex.apps.posts.models import MediaItem
 
 
 SEARCH_URL = 'https://toloka.to/tracker.php?nm='

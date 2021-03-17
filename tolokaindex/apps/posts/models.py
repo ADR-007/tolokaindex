@@ -6,6 +6,7 @@ from django.db import models
 from django.utils.functional import cached_property
 
 from tolokaindex.apps.raw_posts.models import RawPost
+from tolokaindex.utils.langdetector import detect_language
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,13 @@ TITLE_MAX_LENGTH = 500
 
 class Title(models.Model):
     title = models.CharField(max_length=TITLE_MAX_LENGTH, unique=True)
+    language = models.CharField(max_length=100, null=True, default=None)
+
+    def save(self, *args, **kwargs) -> None:
+        if self.language is None:
+            self.language = detect_language(self.title)
+
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return str(self.title)
@@ -60,7 +68,9 @@ class Post(models.Model):
         titles = cls._parse_titles(re_result.group('title'))
         years = cls._parse_years(re_result.group('years'))
 
-        Title.objects.bulk_create([Title(title=title) for title in titles], ignore_conflicts=True)
+        for title in titles:
+            Title.objects.update_or_create(title=title)
+
         Year.objects.bulk_create([Year(year=year) for year in years], ignore_conflicts=True)
         titles_models = Title.objects.filter(title__in=titles)
         years_models = Year.objects.filter(year__in=years)
