@@ -8,7 +8,6 @@ from django.utils.functional import cached_property
 from tolokaindex.apps.raw_posts.models import RawPost
 from tolokaindex.utils.langdetector import detect_language
 
-
 logger = logging.getLogger(__name__)
 
 TITLE_RE = re.compile(
@@ -18,6 +17,11 @@ TITLE_RE = re.compile(
 )
 TITLE_EXTRA_INFO = re.compile(r'\(.*?\)')
 TITLE_MAX_LENGTH = 500
+
+TITLE_SEASON_RE = re.compile(
+    r'\(сезони? (?P<seasons>\d+(-\d+)?).*?\)',
+    flags=re.IGNORECASE
+)
 
 
 class Title(models.Model):
@@ -64,9 +68,11 @@ class Post(models.Model):
 
     @classmethod
     def update_from_raw(cls, raw_post: RawPost) -> 'Post':
-        re_result = TITLE_RE.search(raw_post.title.replace('–', '-'))
+        raw_title = raw_post.title.replace('–', '-')
+        re_result = TITLE_RE.search(raw_title)
         titles = cls._parse_titles(re_result.group('title'))
         years = cls._parse_years(re_result.group('years'))
+        seasons = cls._parse_seasons(raw_title)
 
         for title in titles:
             Title.objects.update_or_create(title=title)
@@ -80,11 +86,12 @@ class Post(models.Model):
         ))
         post.titles.set(titles_models)
         post.years.set(years_models)
+        post.seasons.set([PostSeason(season=season) for season in seasons], bulk=False)
 
         return post
 
     @staticmethod
-    def _parse_titles(title_str) -> List[str]:
+    def _parse_titles(title_str: str) -> List[str]:
         titles = []
 
         for title in title_str.split('/'):
@@ -93,21 +100,27 @@ class Post(models.Model):
         return titles
 
     @staticmethod
-    def _parse_years(years_str) -> List[int]:
-        years = []
-
-        for year_range_str in years_str.split(','):
-            year_range = year_range_str.split('-')
-
-            start_year = end_year = int(year_range[0])
-
-            if len(year_range) > 1:
-                end_year = int(year_range[1])
-
-            for year in range(start_year, end_year + 1):
-                years.append(year)
+    def _parse_years(years_str: str) -> List[int]:
+        years = Post._parse_sequence(years_str)
 
         return years
+
+    @staticmethod
+    def _parse_sequence(sequence_str: str) -> List[int]:
+        values = []
+
+        for values_range_str in sequence_str.split(','):
+            values_range = values_range_str.split('-')
+
+            range_start = range_end = int(values_range[0])
+
+            if len(values_range) > 1:
+                range_end = int(values_range[1])
+
+            for value in range(range_start, range_end + 1):
+                values.append(value)
+
+        return values
 
     @classmethod
     def _get_media_item(cls, titles: List[Title], years: List[Year]) -> MediaItem:
@@ -132,3 +145,24 @@ class Post(models.Model):
             Post.objects.filter(media_item__in=media_items).update(media_item=first_item)
 
             return first_item
+
+    @classmethod
+    def _parse_seasons(cls, raw_title: str) -> List[int]:
+        results = TITLE_SEASON_RE.search(raw_title)
+
+        if not results:
+            return []
+
+        seasons_str = results.group('seasons')
+
+        return cls._parse_sequence(seasons_str)
+
+
+class PostSeason(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='seasons')
+    season = models.PositiveIntegerField()
+
+
+class PostSeries(models.Model):
+    season = models.ForeignKey(PostSeason, on_delete=models.CASCADE, related_name='series')
+    series = models.PositiveIntegerField()

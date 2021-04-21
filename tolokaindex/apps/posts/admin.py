@@ -10,7 +10,7 @@ from tolokaindex.utils.langdetector import Language
 
 
 class PublicMediaItemAdmin(PublicModelAdmin):
-    list_display = ['title_ukr', 'title_not_ukr', 'max_year', 'max_registered_on', 'link']
+    list_display = ['title_ukr', 'title_not_ukr', 'max_season', 'max_year', 'max_registered_on', 'link']
     list_display_links = None
     search_fields = ['posts__titles__title']
 
@@ -24,6 +24,7 @@ class PublicMediaItemAdmin(PublicModelAdmin):
             title_ukr=Subquery(self.title_ukr_query[:1]),
             title_eng=Subquery(self.title_eng_query[:1]),
             title_not_ukr=Subquery(self.title_not_ukr_query),
+            max_season=Max('posts__seasons__season'),
             max_year=Max('posts__years__year'),
             max_registered_on=Max('posts__raw_post__registered_on'),
         ).order_by(
@@ -43,6 +44,9 @@ class PublicMediaItemAdmin(PublicModelAdmin):
 
     def max_year(self, obj):
         return obj.max_year
+
+    def max_season(self, obj):
+        return obj.max_season
 
     max_year.admin_order_field = 'max_year'
 

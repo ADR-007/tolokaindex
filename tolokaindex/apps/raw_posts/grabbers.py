@@ -1,17 +1,17 @@
 from datetime import date
-from itertools import islice, count
-from typing import Optional, Iterable, Any
+from itertools import count
+from typing import Optional, Iterable
 from urllib.parse import urlparse
 
 import requests
 from django.db.transaction import atomic
-from lxml import html
 from lxml import etree
+from lxml import html
 
 from tolokaindex.apps.raw_posts.models import RawPost
 
-
-SEARCH_NEWER_URL = 'https://toloka.to/f32?sort=8'
+SEARCH_NEWER_SERIES_URL = 'https://toloka.to/f32?sort=8'
+SEARCH_NEWER_HD_SERIES_URL = 'https://toloka.to/f173?sort=8'
 
 
 class ResultGrabber:
@@ -22,8 +22,8 @@ class ResultGrabber:
 
     min_date = date(year=2010, month=1, day=1)
 
-    def __init__(self, url: str = None):
-        self.url = url or SEARCH_NEWER_URL
+    def __init__(self, url: str):
+        self.url = url
         self.updates = 0
         self.session = requests.session()
         self.session.max_redirects = 0
@@ -84,7 +84,7 @@ class ResultGrabber:
         print(f'Added: {title}')
 
         if registered_on < self.min_date:
-            print('Too early posts... stop.')
+            print(f'Too early posts ({registered_on})... stop.')
             return False
 
         return True
